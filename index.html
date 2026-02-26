@@ -12,17 +12,12 @@
         .product-card:active { transform: scale(0.98); }
         .cart-bar { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .cart-hidden { transform: translateY(150%); }
-        /* Ocultar barra de scroll para que parezca app nativa */
         ::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        /* Animación para modales */
         .modal-enter { animation: slideUp 0.3s ease-out forwards; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         .fade-in { animation: fadeIn 0.2s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        
-        /* Estilos chips de género */
         .gender-chip { transition: all 0.2s ease; cursor: pointer; user-select: none; white-space: nowrap; }
         .gender-chip.active { background-color: #1e293b; color: white; border-color: #1e293b; }
         .gender-chip.inactive { background-color: white; color: #64748b; border-color: #e2e8f0; }
@@ -48,7 +43,7 @@
             <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-sm"></i>
         </div>
 
-        <!-- FILTRO DE GÉNERO -->
+        <!-- FILTRO DE GÉNERO EXACTO -->
         <div class="flex gap-2 overflow-x-auto no-scrollbar mb-3 pb-1">
             <div onclick="window.applyGender('all')" id="gen-all" class="gender-chip active text-xs font-bold px-4 py-1.5 rounded-full border shadow-sm">Todos</div>
             <div onclick="window.applyGender('dama')" id="gen-dama" class="gender-chip inactive text-xs font-bold px-4 py-1.5 rounded-full border">Dama</div>
@@ -76,7 +71,7 @@
         </div>
     </main>
 
-    <!-- BARRA FLOTANTE (Abre la previsualización) -->
+    <!-- BARRA FLOTANTE -->
     <div id="bottom-cart" class="fixed bottom-5 left-4 right-4 max-w-md mx-auto cart-bar cart-hidden z-40">
         <button onclick="window.openCartPreview()" class="w-full bg-slate-900 text-white rounded-2xl p-4 flex justify-between items-center shadow-2xl hover:bg-black transition border border-slate-700">
             <div class="flex items-center gap-3">
@@ -90,7 +85,7 @@
         </button>
     </div>
 
-    <!-- MODAL PREVISUALIZACIÓN DEL PEDIDO -->
+    <!-- MODAL PREVISUALIZACIÓN -->
     <div id="cart-preview-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex-col justify-end fade-in">
         <div class="absolute inset-0" onclick="window.closeCartPreview()"></div>
         <div class="bg-white w-full max-w-md mx-auto rounded-t-3xl p-5 flex flex-col max-h-[85vh] relative z-10 modal-enter">
@@ -104,7 +99,6 @@
                     <span class="text-sm font-bold text-slate-500 uppercase">Total Aproximado:</span>
                     <span class="text-2xl font-black text-slate-900" id="preview-total">$0.00</span>
                 </div>
-                <p class="text-[10px] text-slate-400 mb-3 text-center">Serás redirigido a WhatsApp para confirmar la disponibilidad y agendar tu cita.</p>
                 <button onclick="window.sendWhatsApp()" class="w-full bg-green-600 text-white rounded-xl p-4 font-bold flex justify-center items-center gap-2 hover:bg-green-700 active:scale-95 transition shadow-lg shadow-green-200">
                     <i class="fa-brands fa-whatsapp text-xl"></i> Enviar Pedido a la Óptica
                 </button>
@@ -112,7 +106,7 @@
         </div>
     </div>
 
-    <!-- LIGHTBOX (ZOOM DE IMAGEN) -->
+    <!-- LIGHTBOX -->
     <div id="lightbox" class="fixed inset-0 bg-black/95 z-[100] hidden flex-col items-center justify-center fade-in">
         <button onclick="window.closeLightbox()" class="absolute top-6 right-6 text-white bg-white/20 rounded-full w-10 h-10 flex items-center justify-center text-xl hover:bg-white/40 z-50">
             <i class="fa-solid fa-xmark"></i>
@@ -121,41 +115,39 @@
         <div class="w-full max-w-md p-4 relative z-30 pointer-events-none">
             <img id="lightbox-img" src="" class="w-full h-auto object-contain select-none" draggable="false" alt="Zoom Montura" oncontextmenu="return false;">
         </div>
-        <p class="absolute bottom-10 text-white/50 text-xs text-center z-30 pointer-events-none">Toca en cualquier lado para cerrar</p>
     </div>
 
     <script>
         // ==========================================
-        // CONFIGURACIÓN 
+        // CONFIGURACIÓN
         // ==========================================
         const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRuZ4_YpXxbqtxBaLaFr7zAE3cTZQAXDG74riH7q7tLd5bxfFitT2jYSez25563KoeBGYOeMnGTuGP1/pub?output=csv";
         const TU_NUMERO_WHATSAPP = "584129442918"; 
         // ==========================================
 
-        let frames = []; 
-        let cart = [];
+        let frames =[]; 
+        let cart =[];
         window.sortOrder = 'default';
         window.activeGender = 'all';
 
-        // --- CARGA DE DATOS ---
         async function loadData() {
             try {
                 const antiCache = GOOGLE_SHEET_URL + "&t=" + new Date().getTime();
                 const response = await fetch('https://corsproxy.io/?' + encodeURIComponent(antiCache))
                     .catch(() => fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(antiCache)));
                 
-                if(!response || !response.ok) throw new Error("Fallo en la red");
+                if(!response || !response.ok) throw new Error("Fallo");
                 const data = await response.text();
                 parseCSV(data);
                 window.renderCatalog();
             } catch (error) {
-                document.getElementById('catalog-grid').innerHTML = '<div class="flex flex-col items-center justify-center h-full text-slate-400 mt-10"><i class="fa-solid fa-wifi text-4xl mb-3 opacity-50"></i><p class="text-center px-6">No pudimos cargar el catálogo. Por favor, verifica tu conexión a internet y recarga.</p></div>';
+                document.getElementById('catalog-grid').innerHTML = '<div class="text-center p-10 text-slate-400 mt-10"><p>No pudimos cargar el catálogo. Verifique su conexión.</p></div>';
             }
         }
 
         function parseCSV(csvText) {
             const rows = csvText.split('\n').map(r => r.trim()).filter(r => r.length > 0);
-            frames = []; 
+            frames =[]; 
 
             for (let i = 1; i < rows.length; i++) {
                 const values = rows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
@@ -165,7 +157,8 @@
                 let catRaw = clean[1] ? clean[1].toLowerCase() : '';
                 if(!catRaw.includes('montura') && !catRaw.includes('frame')) continue;
 
-                let img = clean[7] || '';
+                // LA IMAGEN AHORA ESTÁ EN LA COLUMNA I (índice 8)
+                let img = clean[8] || '';
                 if(img.includes('drive.google.com') && img.includes('/view')) {
                     try {
                         const id = img.match(/\/d\/(.+?)\//)[1];
@@ -179,16 +172,14 @@
                     price: parseFloat(clean[3])||0, 
                     brand: clean[4]||'', 
                     desc: clean[6]||'', 
+                    gender: (clean[7]||'').toLowerCase(), // NUEVA COLUMNA H (índice 7)
                     image: img
                 });
             }
         }
 
-        // --- FILTRO GÉNERO ---
         window.applyGender = function(gender) {
             window.activeGender = gender;
-            
-            // Actualizar botones visualmente
             ['all', 'dama', 'caballero', 'nino'].forEach(g => {
                 const btn = document.getElementById('gen-' + (g === 'niño' ? 'nino' : g));
                 if(btn) {
@@ -199,7 +190,6 @@
             window.renderCatalog();
         };
 
-        // --- SISTEMA DE ORDENAMIENTO ---
         window.toggleSort = function() {
             if(window.sortOrder === 'default') window.sortOrder = 'asc';
             else if(window.sortOrder === 'asc') window.sortOrder = 'desc';
@@ -225,7 +215,6 @@
             window.renderCatalog();
         };
 
-        // --- RENDERIZADO DEL CATÁLOGO ---
         window.renderCatalog = function() {
             const grid = document.getElementById('catalog-grid');
             grid.innerHTML = '<div class="grid grid-cols-2 gap-3" id="products-container"></div>';
@@ -236,30 +225,27 @@
             const budgetMax = parseFloat(document.getElementById('budget-input').value) || Infinity;
 
             let filtered = frames.filter(item => {
-                const itemData = [item.name, item.brand, item.desc].join(' ').toLowerCase();
-
-                // 1. Filtro Presupuesto
                 if(item.price > budgetMax) return false;
                 
-                // 2. Filtro de Género (Oculto)
-                // Usamos "niño" o "nino" para evitar problemas de tildes
+                // NUEVO FILTRO EXACTO POR COLUMNA GÉNERO
                 if (window.activeGender !== 'all') {
                     let searchGen = window.activeGender;
-                    if(searchGen === 'nino') searchGen = 'niñ';
-                    if(!itemData.includes(searchGen)) return false;
+                    if(searchGen === 'nino') searchGen = 'niñ'; // Para que detecte "niño" o "niña"
+                    
+                    // Si buscas Dama, y es Unisex, también debería aparecer. Si dice Dama, aparece.
+                    if(!item.gender.includes(searchGen) && !item.gender.includes('unisex')) return false;
                 }
 
-                // 3. Super Buscador
                 if (rawTerm === '') return true;
+                const itemData = [item.name, item.brand, item.desc].join(' ').toLowerCase();
                 return searchTerms.every(word => itemData.includes(word));
             });
 
-            // Ordenamiento
             if(window.sortOrder === 'asc') { filtered.sort((a, b) => a.price - b.price); } 
             else if (window.sortOrder === 'desc') { filtered.sort((a, b) => b.price - a.price); }
 
             if(filtered.length === 0) {
-                grid.innerHTML = '<div class="text-center p-10 text-slate-400 mt-10"><i class="fa-solid fa-box-open text-4xl mb-3 opacity-50"></i><p class="text-sm">No encontramos monturas con esos criterios.</p></div>';
+                grid.innerHTML = '<div class="text-center p-10 text-slate-400 mt-10"><p class="text-sm">No encontramos monturas con esos criterios.</p></div>';
                 return;
             }
 
@@ -267,7 +253,6 @@
                 const card = document.createElement('div');
                 card.className = "product-card";
                 
-                // Imagen con sistema de protección
                 let imgHtml = `<div class="aspect-square bg-slate-50 flex items-center justify-center text-4xl text-slate-300"><i class="fa-solid fa-glasses"></i></div>`;
                 if(item.image && item.image.startsWith('http')) {
                     imgHtml = `
@@ -303,48 +288,35 @@
             });
         };
 
-        // --- SISTEMA DE ZOOM (LIGHTBOX) ---
         window.openLightbox = function(url) {
             const lb = document.getElementById('lightbox');
-            const img = document.getElementById('lightbox-img');
-            img.src = url;
-            lb.classList.remove('hidden');
-            lb.classList.add('flex');
+            document.getElementById('lightbox-img').src = url;
+            lb.classList.remove('hidden'); lb.classList.add('flex');
             document.body.style.overflow = 'hidden'; 
         };
-
         window.closeLightbox = function() {
             const lb = document.getElementById('lightbox');
-            lb.classList.add('hidden');
-            lb.classList.remove('flex');
+            lb.classList.add('hidden'); lb.classList.remove('flex');
             document.body.style.overflow = 'auto';
         };
 
-        // --- SISTEMA DE CARRITO Y PREVISUALIZACIÓN ---
         window.addToCart = function(id) {
             const item = frames.find(i => i.id === id);
             if(item && !cart.find(c => c.id === id)) {
-                cart.push(item);
-                updateCartUI();
-                window.renderCatalog(); 
+                cart.push(item); updateCartUI(); window.renderCatalog(); 
             }
         };
-
         window.removeFromCart = function(id) {
             const index = cart.findIndex(i => i.id === id);
             if(index > -1) {
-                cart.splice(index, 1);
-                updateCartUI();
-                window.renderCatalog();
-                renderPreviewItems(); 
+                cart.splice(index, 1); updateCartUI(); window.renderCatalog(); renderPreviewItems(); 
             }
         };
 
         function updateCartUI() {
             const bar = document.getElementById('bottom-cart');
             if(cart.length === 0) {
-                bar.classList.add('cart-hidden');
-                window.closeCartPreview(); 
+                bar.classList.add('cart-hidden'); window.closeCartPreview(); 
             } else {
                 bar.classList.remove('cart-hidden');
                 document.getElementById('cart-qty').innerText = cart.length;
@@ -356,54 +328,37 @@
 
         window.openCartPreview = function() {
             renderPreviewItems();
-            const modal = document.getElementById('cart-preview-modal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
+            document.getElementById('cart-preview-modal').classList.remove('hidden');
+            document.getElementById('cart-preview-modal').classList.add('flex');
             document.body.style.overflow = 'hidden';
         };
-
         window.closeCartPreview = function() {
-            const modal = document.getElementById('cart-preview-modal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
+            document.getElementById('cart-preview-modal').classList.add('hidden');
+            document.getElementById('cart-preview-modal').classList.remove('flex');
             document.body.style.overflow = 'auto';
         };
 
         function renderPreviewItems() {
             const container = document.getElementById('preview-items');
             container.innerHTML = '';
-            
             cart.forEach(item => {
                 const row = document.createElement('div');
                 row.className = "flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100";
-                
                 let imgIcon = item.image ? `<img src="${item.image}" class="w-full h-full object-cover">` : `<i class="fa-solid fa-glasses text-slate-400"></i>`;
-                
                 row.innerHTML = `
                     <div class="flex items-center gap-3 overflow-hidden">
-                        <div class="w-10 h-10 rounded-lg bg-white border border-slate-200 flex-shrink-0 flex items-center justify-center overflow-hidden pointer-events-none">
-                            ${imgIcon}
-                        </div>
-                        <div class="min-w-0">
-                            <div class="text-sm font-bold text-slate-700 truncate">${item.name}</div>
-                            <div class="text-xs text-blue-600 font-bold">$${item.price}</div>
-                        </div>
+                        <div class="w-10 h-10 rounded-lg bg-white border border-slate-200 flex-shrink-0 flex items-center justify-center overflow-hidden pointer-events-none">${imgIcon}</div>
+                        <div class="min-w-0"><div class="text-sm font-bold text-slate-700 truncate">${item.name}</div><div class="text-xs text-blue-600 font-bold">$${item.price}</div></div>
                     </div>
-                    <button onclick="window.removeFromCart('${item.id}')" class="w-8 h-8 flex items-center justify-center text-slate-300 hover:text-red-500 transition">
-                        <i class="fa-solid fa-trash-can"></i>
-                    </button>
-                `;
+                    <button onclick="window.removeFromCart('${item.id}')" class="w-8 h-8 flex items-center justify-center text-slate-300 hover:text-red-500 transition"><i class="fa-solid fa-trash-can"></i></button>`;
                 container.appendChild(row);
             });
         }
 
-        // --- ENVÍO A WHATSAPP ---
         window.sendWhatsApp = function() {
             if(cart.length === 0) return;
-            
             let total = 0;
             let msg = `¡Hola! He estado viendo su catálogo virtual y me interesan estas monturas:\n\n`;
-            
             cart.forEach(item => {
                 total += item.price;
                 msg += `👓 *${item.name}*`;
@@ -411,15 +366,11 @@
                 msg += ` - $${item.price.toFixed(2)}\n`;
                 if(item.id) msg += `   ↳ Ref: ${item.id}\n`;
             });
-            
-            msg += `\n*TOTAL APROXIMADO: $${total.toFixed(2)}*\n\n`;
-            msg += `¿Me podrían dar más información o agendar una cita para probarlas?`;
-            
+            msg += `\n*TOTAL APROXIMADO: $${total.toFixed(2)}*\n\n¿Me podrían dar más información o agendar una cita para probarlas?`;
             const link = `https://api.whatsapp.com/send?phone=${TU_NUMERO_WHATSAPP}&text=${encodeURIComponent(msg)}`;
             window.open(link, '_blank');
         };
 
-        // Arrancar
         loadData();
     </script>
 </body>
