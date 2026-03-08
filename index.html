@@ -26,6 +26,7 @@
         
         .type-active { background-color: #eff6ff; color: #2563eb; border-color: #bfdbfe; font-weight: bold;}
         .type-inactive { background-color: transparent; color: #64748b; border-color: transparent; }
+        .type-new { background-color: #fef2f2; color: #ef4444; border-color: #fecaca; font-weight: bold; }
     </style>
 </head>
 <body class="h-screen flex flex-col text-slate-800 antialiased max-w-md mx-auto relative bg-white shadow-2xl">
@@ -50,11 +51,13 @@
 
         <!-- FILTROS (DOBLE NIVEL) -->
         <div class="flex flex-col gap-2 mb-2">
-            <!-- NIVEL 1: TIPO DE MONTURA -->
+            <!-- NIVEL 1: TIPO DE MONTURA Y NUEVAS -->
             <div class="flex gap-1 overflow-x-auto no-scrollbar pb-1">
                 <div onclick="window.applyType('all')" id="type-all" class="chip type-active text-xs px-3 py-1.5 rounded-full border">Todas</div>
                 <div onclick="window.applyType('oftalmica')" id="type-oftalmica" class="chip type-inactive text-xs px-3 py-1.5 rounded-full border">Oftálmicas</div>
                 <div onclick="window.applyType('sol')" id="type-sol" class="chip type-inactive text-xs px-3 py-1.5 rounded-full border"><i class="fa-solid fa-sun text-orange-400 mr-1"></i>De Sol</div>
+                <!-- BOTÓN NUEVAS -->
+                <div onclick="window.applyType('nuevas')" id="type-nuevas" class="chip type-inactive text-xs px-3 py-1.5 rounded-full border"><i class="fa-solid fa-fire text-red-500 mr-1"></i>Nuevas</div>
             </div>
 
             <!-- NIVEL 2: GÉNERO Y ORDEN -->
@@ -140,11 +143,11 @@
         const TU_NUMERO_WHATSAPP = "584129442918"; 
         // ==========================================
 
-        let frames = []; 
+        let frames =[]; 
         let cart =[];
         window.sortOrder = 'default';
         window.activeGender = 'all';
-        window.activeType = 'all'; // Oftálmica o Sol
+        window.activeType = 'all'; 
 
         // --- CARGA DE DATOS ---
         async function loadData() {
@@ -171,6 +174,7 @@
                 const clean = values.map(v => v.replace(/^"|"$/g, '').trim());
                 if(clean.length < 3) continue;
 
+                // Solo nos interesan las monturas en el catálogo de pacientes
                 let catRaw = clean[1] ? clean[1].toLowerCase() : '';
                 if(!catRaw.includes('montura') && !catRaw.includes('frame')) continue;
 
@@ -188,6 +192,25 @@
                 // Extraemos tipo y genero
                 let typeCol = (clean[5] || '').toLowerCase();
                 let isSun = typeCol.includes('sol') || (clean[6]||'').toLowerCase().includes('sol');
+                
+                // SISTEMA DE FECHAS PARA BOTÓN "NUEVAS"
+                // Lee la columna J (índice 9)
+                let isNew = false;
+                let dateStr = clean[9] || ''; 
+                if(dateStr.length >= 8) {
+                    let parts = dateStr.includes('/') ? dateStr.split('/') : dateStr.split('-');
+                    if(parts.length === 3) {
+                        // Soporta DD/MM/YYYY o YYYY-MM-DD
+                        let y = parts[0].length === 4 ? parts[0] : parts[2];
+                        let m = parts[1];
+                        let d = parts[0].length === 4 ? parts[2] : parts[0];
+                        let itemDate = new Date(y, m - 1, d);
+                        let diffDays = (new Date() - itemDate) / (1000 * 60 * 60 * 24);
+                        
+                        // Si tiene 15 días o menos, es Nueva
+                        if(diffDays >= 0 && diffDays <= 15) isNew = true; 
+                    }
+                }
 
                 frames.push({
                     id: clean[0], 
@@ -196,6 +219,7 @@
                     brand: clean[4]||'', 
                     typeRaw: typeCol,
                     isSun: isSun,
+                    isNew: isNew,
                     desc: clean[6]||'', 
                     gender: (clean[7]||'').toLowerCase(),
                     image: img
@@ -205,11 +229,16 @@
 
         // --- SISTEMA DE FILTROS ---
         window.applyType = function(type) {
-            window.activeType = type;['all', 'oftalmica', 'sol'].forEach(t => {
+            window.activeType = type;
+            ['all', 'oftalmica', 'sol', 'nuevas'].forEach(t => {
                 const btn = document.getElementById('type-' + t);
                 if(btn) {
-                    btn.classList.remove('type-active', 'type-inactive');
-                    btn.classList.add(type === t ? 'type-active' : 'type-inactive');
+                    btn.classList.remove('type-active', 'type-inactive', 'type-new');
+                    if (type === t) {
+                        btn.classList.add(t === 'nuevas' ? 'type-new' : 'type-active');
+                    } else {
+                        btn.classList.add('type-inactive');
+                    }
                 }
             });
             window.renderCatalog();
@@ -254,9 +283,10 @@
             const searchTerms = rawTerm.split(/\s+/);
 
             let filtered = frames.filter(item => {
-                // Filtro 1: Lentes de Sol vs Oftálmicos
+                // Filtro 1: Lentes de Sol vs Oftálmicos vs Nuevas
                 if(window.activeType === 'sol' && !item.isSun) return false;
                 if(window.activeType === 'oftalmica' && item.isSun) return false;
+                if(window.activeType === 'nuevas' && !item.isNew) return false;
 
                 // Filtro 2: Género
                 if (window.activeGender !== 'all') {
@@ -271,6 +301,7 @@
                 return searchTerms.every(word => itemData.includes(word));
             });
 
+            // Ordenamiento
             if(window.sortOrder === 'asc') { filtered.sort((a, b) => a.price - b.price); } 
             else if (window.sortOrder === 'desc') { filtered.sort((a, b) => b.price - a.price); }
 
@@ -283,10 +314,14 @@
                 const card = document.createElement('div');
                 card.className = "product-card";
                 
+                // BADGE "NUEVA"
+                let newBadge = item.isNew ? `<div class="absolute top-2 left-2 bg-red-500 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow z-20 uppercase animate-pulse">🔥 Nueva</div>` : '';
+
                 let imgHtml = `<div class="aspect-square bg-slate-50 flex items-center justify-center text-4xl text-slate-300"><i class="fa-solid fa-glasses"></i></div>`;
                 if(item.image && item.image.startsWith('http')) {
                     imgHtml = `
                     <div class="aspect-square bg-white flex items-center justify-center p-2 relative cursor-pointer" onclick="window.openLightbox('${item.image}')">
+                        ${newBadge}
                         <div class="absolute inset-0 z-10" oncontextmenu="return false;"></div>
                         <div class="absolute bottom-2 right-2 z-20 bg-black/30 text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px] pointer-events-none"><i class="fa-solid fa-magnifying-glass-plus"></i></div>
                         <img src="${item.image}" class="relative w-full h-full object-contain pointer-events-none select-none" draggable="false" oncontextmenu="return false;" onerror="this.style.display='none'" alt="${item.name}">
