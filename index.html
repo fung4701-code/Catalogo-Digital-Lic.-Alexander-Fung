@@ -153,8 +153,8 @@
         async function loadData() {
             try {
                 const antiCache = GOOGLE_SHEET_URL + "&t=" + new Date().getTime();
-                const response = await fetch('https://corsproxy.io/?' + encodeURIComponent(antiCache))
-                    .catch(() => fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(antiCache)));
+                const response = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(antiCache))
+                    .catch(() => fetch('https://corsproxy.io/?' + encodeURIComponent(antiCache)));
                 
                 if(!response || !response.ok) throw new Error("Fallo en la red");
                 const data = await response.text();
